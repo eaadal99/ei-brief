@@ -1,0 +1,18 @@
+{
+  "name": "ei-brief-backend",
+  "version": "1.0.0",
+  "description": "E&I Brief — Energy news aggregator backend",
+  "type": "module",
+  "scripts": {
+    "start": "node src/api/index.js",
+    "dev": "node --watch src/api/index.js",
+    "migrate": "node db/migrate.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1",
+    "rss-parser": "^3.13.0"
+  }
+}
