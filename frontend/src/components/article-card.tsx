@@ -100,6 +100,8 @@ interface ArticleCardProps {
   onFeedback?: (id: string, feedback: 'relevant' | 'not_relevant') => void;
   onSave?: (id: string) => void;
   showFeedback?: boolean;
+  /** Set by parent during the brief flash period before article disappears */
+  feedbackState?: 'relevant' | 'not_relevant';
 }
 
 export function ArticleCard({
@@ -107,14 +109,25 @@ export function ArticleCard({
   onFeedback,
   onSave,
   showFeedback = true,
+  feedbackState,
 }: ArticleCardProps) {
   const sector = article.sector ? SECTOR_MAP[article.sector] : null;
+  const isPending = !!feedbackState;
 
   return (
-    <Card size="sm">
+    <Card
+      size="sm"
+      className={
+        isPending
+          ? feedbackState === 'relevant'
+            ? 'opacity-60 ring-1 ring-green-400 transition-all duration-300'
+            : 'opacity-60 ring-1 ring-red-400 transition-all duration-300'
+          : 'transition-all duration-300'
+      }
+    >
       <CardContent className="flex flex-col gap-2">
-        {/* Top row: sector badge, source, time */}
-        <div className="flex items-center gap-2 text-xs">
+        {/* Top row: sector badge, geography, source, time */}
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           {sector && (
             <Badge
               variant="outline"
@@ -123,6 +136,11 @@ export function ArticleCard({
             >
               {sector.label}
             </Badge>
+          )}
+          {article.geography && (
+            <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {article.geography}
+            </span>
           )}
           {article.source_name && (
             <span className="text-muted-foreground">{article.source_name}</span>
@@ -165,7 +183,12 @@ export function ArticleCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-green-600"
+                  className={`h-7 w-7 p-0 transition-colors ${
+                    feedbackState === 'relevant'
+                      ? 'text-green-600'
+                      : 'text-muted-foreground hover:text-green-600'
+                  }`}
+                  disabled={isPending}
                   onClick={() => onFeedback(article.id, 'relevant')}
                 >
                   <ThumbsUpIcon className="size-3.5" />
@@ -173,7 +196,12 @@ export function ArticleCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                  className={`h-7 w-7 p-0 transition-colors ${
+                    feedbackState === 'not_relevant'
+                      ? 'text-red-500'
+                      : 'text-muted-foreground hover:text-red-500'
+                  }`}
+                  disabled={isPending}
                   onClick={() => onFeedback(article.id, 'not_relevant')}
                 >
                   <ThumbsDownIcon className="size-3.5" />

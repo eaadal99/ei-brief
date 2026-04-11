@@ -104,7 +104,7 @@ router.get('/', async (req, res) => {
         FROM user_feedback
         GROUP BY article_id
       ) scores ON a.id = scores.article_id
-      LEFT JOIN rss_sources rs ON a.source_key = rs.source_key
+      LEFT JOIN rss_sources rs ON a.source_key = rs.id::text
       WHERE ${conditions.join(' AND ')}
       ORDER BY (
         EXTRACT(EPOCH FROM COALESCE(a.published_at, a.fetched_at)) / 3600.0
@@ -204,7 +204,7 @@ router.post('/feedback', async (req, res) => {
          JOIN articles a ON uf.article_id = a.id
          WHERE a.source_key = (SELECT source_key FROM articles WHERE id = $1)
        ) stats
-       WHERE rs.source_key = (SELECT source_key FROM articles WHERE id = $1)`,
+       WHERE rs.id::text = (SELECT source_key FROM articles WHERE id = $1)`,
       [article_id]
     );
 
