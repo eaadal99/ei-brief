@@ -19,6 +19,12 @@ export interface CurrentUser {
   name: string;
   display_name: string | null;
   sector_focus: string | null;
+  is_admin?: boolean;
+}
+
+export interface AuthSession {
+  token: string;
+  user: CurrentUser;
 }
 
 export interface RssSource {
@@ -28,6 +34,9 @@ export interface RssSource {
   sector: string;
   enabled: boolean;
   created_at: string;
+  quality_score?: number;
+  total_feedback?: number;
+  relevant_count?: number;
 }
 
 export interface NewsletterConfig {

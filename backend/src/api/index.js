@@ -4,19 +4,17 @@
  * Layers:
  *   1. CORS
  *   2. Health check (public)
- *   3. Team password gate
- *   4. API key check
- *   5. Auth routes (verify-team, users)
- *   6. User context (attach userId)
- *   7. All other routes
+ *   3. API key check
+ *   4. POST /auth/login (public — no JWT needed)
+ *   5. JWT auth (all other /api/v1 routes)
+ *   6. Feature routes
  */
 
 import 'dotenv/config';
 import express from 'express';
+import bcrypt from 'bcrypt';
 import { pool, query } from '../lib/db.js';
-import { requireApiKey } from './middleware/auth.js';
-import { requireTeamAuth } from './middleware/team-auth.js';
-import { attachUser } from './middleware/user-context.js';
+import { requireApiKey, requireJwtAuth } from './middleware/auth.js';
 import authRouter from './routes/auth.js';
 import feedRouter from './routes/feed.js';
 import articlesRouter from './routes/articles.js';
@@ -31,10 +29,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Startup validation
+if (!process.env.JWT_SECRET) console.warn('[startup] JWT_SECRET not set — using insecure dev default');
 if (!process.env.API_KEY) console.warn('[startup] API_KEY not set — API key auth disabled');
 if (!process.env.ANTHROPIC_API_KEY) console.warn('[startup] ANTHROPIC_API_KEY not set — AI features disabled');
 
-// ── CORS ────────────────────────────────────────────────────────────────────
+// ── CORS ─────────────────────────────────────────────────────────────────────
 
 const ALLOWED_ORIGINS_ENV = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
@@ -51,7 +50,7 @@ app.use((req, res, next) => {
 
   if (isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, x-user-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key, Authorization');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -73,23 +72,19 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ── Team password gate ──────────────────────────────────────────────────────
-
-app.use(requireTeamAuth);
-
-// ── API key check ───────────────────────────────────────────────────────────
+// ── API key check ────────────────────────────────────────────────────────────
 
 app.use('/api/v1', requireApiKey);
 
-// ── Auth routes (before user context — creating a user happens before identity) ─
+// ── Public auth route: login (no JWT required) ───────────────────────────────
 
 app.use('/api/v1/auth', authRouter);
 
-// ── User context ────────────────────────────────────────────────────────────
+// ── JWT auth: all remaining routes require a valid token ─────────────────────
 
-app.use('/api/v1', attachUser);
+app.use('/api/v1', requireJwtAuth);
 
-// ── All other routes ────────────────────────────────────────────────────────
+// ── Feature routes ───────────────────────────────────────────────────────────
 
 app.use('/api/v1/feed', feedRouter);
 app.use('/api/v1/articles', articlesRouter);
@@ -98,7 +93,7 @@ app.use('/api/v1/sources', sourcesRouter);
 app.use('/api/v1/newsletter', newsletterRouter);
 app.use('/api/v1/system', systemRouter);
 
-// ── Error handler ───────────────────────────────────────────────────────────
+// ── Error handler ────────────────────────────────────────────────────────────
 
 app.use((err, _req, res, _next) => {
   console.error('Unhandled error:', err);
@@ -108,7 +103,7 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-// ── Start server ────────────────────────────────────────────────────────────
+// ── Start server ─────────────────────────────────────────────────────────────
 
 const server = app.listen(PORT, async () => {
   console.log('');
@@ -134,6 +129,31 @@ const server = app.listen(PORT, async () => {
     console.error('[rss-seed] Failed:', err.message);
   }
 
+  // Seed admin user if env vars provided and no admin exists yet
+  if (process.env.SEED_ADMIN_NAME && process.env.SEED_ADMIN_PASSWORD) {
+    try {
+      const existing = await query(`SELECT id FROM users WHERE is_admin = true LIMIT 1`);
+      if (existing.rows.length === 0) {
+        const hash = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD, 10);
+        await query(
+          `INSERT INTO users (name, display_name, password_hash, is_admin)
+           VALUES ($1, $2, $3, true)
+           ON CONFLICT (name) DO UPDATE
+             SET password_hash = EXCLUDED.password_hash,
+                 is_admin = true`,
+          [
+            process.env.SEED_ADMIN_NAME.trim().toLowerCase(),
+            process.env.SEED_ADMIN_NAME.trim(),
+            hash,
+          ]
+        );
+        console.log(`[admin-seed] Admin user '${process.env.SEED_ADMIN_NAME}' created`);
+      }
+    } catch (err) {
+      console.error('[admin-seed] Failed:', err.message);
+    }
+  }
+
   // Start scheduler
   startScheduler();
 
@@ -141,7 +161,7 @@ const server = app.listen(PORT, async () => {
   console.log('');
 });
 
-// ── Graceful shutdown ───────────────────────────────────────────────────────
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
 
 function shutdown(signal) {
   console.log(`\n[${signal}] Shutting down...`);

@@ -349,6 +349,16 @@ export default function PreferencesPage() {
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                           {SECTORS.find((s) => s.key === source.sector)?.label ?? source.sector}
                         </Badge>
+                        {source.total_feedback != null && source.total_feedback > 0 && (
+                          <span
+                            title={`Team relevance: ${Math.round((source.quality_score ?? 0) * 100)}% (${source.total_feedback} votes)`}
+                            className={`inline-block size-2 rounded-full ${
+                              (source.quality_score ?? 0) >= 0.66 ? 'bg-green-500' :
+                              (source.quality_score ?? 0) >= 0.33 ? 'bg-amber-400' :
+                              'bg-red-400'
+                            }`}
+                          />
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {source.rss_url}

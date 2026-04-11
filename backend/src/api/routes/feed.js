@@ -1,9 +1,16 @@
 /**
  * Feed routes — personal feed, all news, feedback.
  *
- * GET  /feed          — personal feed (filtered by user preferences)
+ * GET  /feed          — personal feed (filtered by user preferences, scored by team feedback)
  * GET  /feed/all      — all articles (unfiltered, paginated)
- * POST /feed/feedback — record relevant/not_relevant, return next article
+ * POST /feed/feedback — record relevant/not_relevant, update source quality, return next article
+ * POST /feed/save/:id — toggle save/unsave an article
+ *
+ * Ranking formula (personal feed):
+ *   score = epoch_hours + global_votes * 10 + (source_quality - 0.5) * 20
+ *
+ * This keeps recency dominant while letting popular articles (+10h per vote)
+ * and quality sources (+10h bonus for 100% relevant) rise in the feed.
  */
 
 import express from 'express';
@@ -11,7 +18,8 @@ import { query } from '../../lib/db.js';
 
 const router = express.Router();
 
-// GET /feed — personal feed filtered by user preferences
+// ── GET /feed — personal feed ─────────────────────────────────────────────────
+
 router.get('/', async (req, res) => {
   try {
     const userId = req.userId;
@@ -74,19 +82,39 @@ router.get('/', async (req, res) => {
     params.push(userId);
     paramIdx++;
 
+    // is_saved check param index
+    const savedParamIdx = paramIdx;
+    params.push(userId);
+    paramIdx++;
+
     const sql = `
-      SELECT a.id, a.headline, a.url, a.summary, a.source_name, a.source_key,
-             a.sector, a.geography, a.published_at, a.fetched_at,
-             EXISTS(SELECT 1 FROM user_saved_articles usa WHERE usa.article_id = a.id AND usa.user_id = $${paramIdx}) AS is_saved
+      SELECT
+        a.id, a.headline, a.url, a.summary, a.source_name, a.source_key,
+        a.sector, a.geography, a.published_at, a.fetched_at,
+        EXISTS(
+          SELECT 1 FROM user_saved_articles usa
+          WHERE usa.article_id = a.id AND usa.user_id = $${savedParamIdx}
+        ) AS is_saved,
+        COALESCE(scores.global_score, 0) AS global_score
       FROM articles a
+      LEFT JOIN (
+        SELECT article_id,
+          (COUNT(*) FILTER (WHERE feedback = 'relevant'))::int -
+          (COUNT(*) FILTER (WHERE feedback = 'not_relevant'))::int AS global_score
+        FROM user_feedback
+        GROUP BY article_id
+      ) scores ON a.id = scores.article_id
+      LEFT JOIN rss_sources rs ON a.source_key = rs.source_key
       WHERE ${conditions.join(' AND ')}
-      ORDER BY a.published_at DESC NULLS LAST, a.fetched_at DESC
+      ORDER BY (
+        EXTRACT(EPOCH FROM COALESCE(a.published_at, a.fetched_at)) / 3600.0
+        + COALESCE(scores.global_score, 0) * 10.0
+        + (COALESCE(rs.quality_score, 0.5) - 0.5) * 20.0
+      ) DESC
       LIMIT 50
     `;
-    params.push(userId);
 
     const result = await query(sql, params);
-
     return res.json({ articles: result.rows });
   } catch (err) {
     console.error('[feed] Error loading personal feed:', err.message);
@@ -94,7 +122,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /feed/all — all articles, optional query params for filtering
+// ── GET /feed/all — all articles ──────────────────────────────────────────────
+
 router.get('/all', async (req, res) => {
   try {
     const { sector, geography, search, limit = '100', offset = '0' } = req.query;
@@ -140,7 +169,8 @@ router.get('/all', async (req, res) => {
   }
 });
 
-// POST /feed/feedback — record user feedback, return next article
+// ── POST /feed/feedback ───────────────────────────────────────────────────────
+
 router.post('/feedback', async (req, res) => {
   try {
     const { article_id, feedback, excluded_ids = [] } = req.body;
@@ -156,7 +186,29 @@ router.post('/feedback', async (req, res) => {
       [req.userId, article_id, feedback]
     );
 
-    // Get next article (not in excluded list, not already given feedback)
+    // Update source quality score based on all feedback for that source
+    await query(
+      `UPDATE rss_sources rs
+       SET
+         total_feedback = stats.total,
+         relevant_count = stats.relevant,
+         quality_score = CASE WHEN stats.total > 0
+           THEN stats.relevant::float / stats.total
+           ELSE 1.0
+         END
+       FROM (
+         SELECT
+           COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE uf.feedback = 'relevant') AS relevant
+         FROM user_feedback uf
+         JOIN articles a ON uf.article_id = a.id
+         WHERE a.source_key = (SELECT source_key FROM articles WHERE id = $1)
+       ) stats
+       WHERE rs.source_key = (SELECT source_key FROM articles WHERE id = $1)`,
+      [article_id]
+    );
+
+    // Get next article (not in excluded list, not already rated by this user)
     const allExcluded = [...excluded_ids, article_id];
     const next = await query(
       `SELECT a.id, a.headline, a.url, a.summary, a.source_name, a.source_key,
@@ -179,13 +231,13 @@ router.post('/feedback', async (req, res) => {
   }
 });
 
-// POST /feed/save/:id — toggle save/unsave an article
+// ── POST /feed/save/:id ───────────────────────────────────────────────────────
+
 router.post('/save/:id', async (req, res) => {
   try {
     const articleId = req.params.id;
     const userId = req.userId;
 
-    // Check if already saved
     const existing = await query(
       'SELECT 1 FROM user_saved_articles WHERE user_id = $1 AND article_id = $2',
       [userId, articleId]

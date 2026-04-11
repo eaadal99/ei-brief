@@ -1,10 +1,10 @@
 /**
  * API client — typed fetch wrapper for all backend calls.
  *
- * Every request includes the API key and user ID headers.
+ * Every request includes the API key and Bearer JWT token.
  */
 
-import { getCurrentUser } from './auth';
+import { getToken } from './auth';
 import type { Article, RssSource, SystemStatus, NewsletterConfig, NewsletterArchiveItem } from './types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -12,19 +12,28 @@ const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? 'eib_dev_key_2026';
 
 /**
  * Low-level fetch wrapper — adds auth headers automatically.
+ * Redirects to /login on 401.
  */
 export async function api(path: string, opts: RequestInit = {}): Promise<Response> {
-  const user = getCurrentUser();
-  return fetch(`${BASE}${path}`, {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-api-key': API_KEY,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(opts.headers as Record<string, string> || {}),
+  };
+
+  const res = await fetch(`${BASE}${path}`, {
     ...opts,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      ...(user ? { 'x-user-id': user.id } : {}),
-      ...(opts.headers || {}),
-    },
+    headers,
   });
+
+  if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login')) {
+    window.location.href = '/login';
+  }
+
+  return res;
 }
 
 // ── Feed ────────────────────────────────────────────────────────────────────
@@ -158,6 +167,61 @@ export async function getSystemStatus(): Promise<SystemStatus | null> {
 
 export async function triggerRun(): Promise<void> {
   await api('/system/run', { method: 'POST' });
+}
+
+// ── Admin: User Management ───────────────────────────────────────────────────
+
+export async function adminListUsers(): Promise<{ users: import('./types').CurrentUser[] }> {
+  const res = await api('/system/users');
+  if (!res.ok) return { users: [] };
+  return res.json();
+}
+
+export async function adminCreateUser(input: {
+  name: string;
+  display_name: string;
+  password: string;
+  is_admin?: boolean;
+  sector_focus?: string;
+}): Promise<{ user: import('./types').CurrentUser }> {
+  const res = await api('/auth/users', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to create user');
+  }
+  return res.json();
+}
+
+export async function adminUpdateUser(
+  id: string,
+  updates: { display_name?: string; is_admin?: boolean }
+): Promise<void> {
+  await api(`/auth/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function adminResetPassword(id: string, password: string): Promise<void> {
+  const res = await api(`/auth/users/${id}/password`, {
+    method: 'PUT',
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to reset password');
+  }
+}
+
+export async function adminDeleteUser(id: string): Promise<void> {
+  const res = await api(`/auth/users/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete user');
+  }
 }
 
 // ── Newsletter Config ───────────────────────────────────────────────────────

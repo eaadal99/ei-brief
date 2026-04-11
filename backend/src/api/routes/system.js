@@ -80,6 +80,21 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// GET /system/users — list all users (admin only)
+router.get('/users', async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+  try {
+    const result = await query(
+      `SELECT id, name, display_name, is_admin, last_active, created_at
+       FROM users WHERE name != 'default' ORDER BY created_at`
+    );
+    return res.json({ users: result.rows });
+  } catch (err) {
+    console.error('[system] list users error:', err.message);
+    return res.status(500).json({ error: 'Failed to list users' });
+  }
+});
+
 // POST /system/run — manual trigger
 router.post('/run', async (req, res) => {
   if (runState.running) {

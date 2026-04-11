@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getCurrentUser, clearCurrentUser } from '@/lib/auth';
+import { getCurrentUser, logout } from '@/lib/auth';
 import { CurrentUser } from '@/lib/types';
 
 const navItems = [
@@ -82,7 +82,6 @@ const navItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
 
   useEffect(() => {
@@ -95,8 +94,7 @@ export default function AppSidebar() {
   };
 
   const handleSwitchUser = () => {
-    clearCurrentUser();
-    router.push('/login');
+    logout();
   };
 
   return (
