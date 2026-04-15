@@ -5,7 +5,7 @@
  */
 
 import { getToken } from './auth';
-import type { Article, RssSource, SystemStatus, NewsletterConfig, NewsletterArchiveItem } from './types';
+import type { Article, RssSource, SystemStatus, NewsletterConfig, NewsletterArchiveItem, Digest } from './types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? 'eib_dev_key_2026';
@@ -79,6 +79,14 @@ export async function submitFeedback(
 export async function toggleSave(articleId: string): Promise<{ is_saved: boolean }> {
   const res = await api(`/feed/save/${articleId}`, { method: 'POST' });
   if (!res.ok) return { is_saved: false };
+  return res.json();
+}
+
+// ── Digest ──────────────────────────────────────────────────────────────────
+
+export async function getDigest(force = false): Promise<Digest | null> {
+  const res = await api(`/digest${force ? '?force=1' : ''}`);
+  if (!res.ok) return null;
   return res.json();
 }
 

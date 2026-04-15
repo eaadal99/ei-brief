@@ -7,14 +7,73 @@
  * POST /feed/save/:id — toggle save/unsave an article
  *
  * Ranking formula (personal feed):
- *   score = epoch_hours + global_votes * 10 + (source_quality - 0.5) * 20
- *
- * This keeps recency dominant while letting popular articles (+10h per vote)
- * and quality sources (+10h bonus for 100% relevant) rise in the feed.
+ *   score = epoch_hours
+ *         + global_votes * 10          (crowd signal)
+ *         + (source_quality - 0.5) * 20 (source trust)
+ *         + sector_affinity * 15        (personalised: sectors user rates relevant)
+ *         + keyword_match * 5           (personalised: keywords from liked articles)
  */
 
 import express from 'express';
 import { query } from '../../lib/db.js';
+
+// ── Stop words for keyword extraction ────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was',
+  'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may',
+  'now', 'old', 'see', 'two', 'who', 'did', 'let', 'put', 'say', 'she', 'too',
+  'use', 'this', 'that', 'with', 'have', 'from', 'they', 'will', 'been', 'said',
+  'each', 'which', 'their', 'time', 'also', 'into', 'just', 'more', 'than',
+  'then', 'when', 'there', 'your', 'could', 'about', 'would', 'other', 'these',
+  'some', 'what', 'were', 'over', 'such', 'here', 'after', 'many', 'most',
+  'well', 'even', 'back', 'come', 'good', 'like', 'look', 'make', 'need',
+  'only', 'open', 'same', 'seem', 'take', 'want', 'year', 'plan', 'says',
+  'amid', 'deal', 'show', 'work', 'part', 'last', 'high', 'much', 'long',
+  'news', 'first', 'still', 'both', 'next', 'turn', 'home', 'move', 'live',
+  'give', 'help', 'keep', 'meet', 'play', 'raise', 'rise', 'risk', 'side',
+  'team', 'told', 'used', 'been', 'also', 'into', 'amid', 'adds', 'says',
+  'sets', 'sees', 'hits', 'gets', 'cuts', 'puts', 'runs', 'wins', 'loss',
+  'gain', 'fall', 'drop', 'push', 'pull', 'call', 'hold', 'seek', 'sign',
+  'face', 'grow', 'near', 'base', 'move', 'aims', 'unit', 'firm', 'data',
+]);
+
+/**
+ * Fetch last 50 relevant article headlines/summaries for a user and extract
+ * the top 15 most-frequent meaningful words as a regex alternation pattern.
+ * Returns null if the user has no feedback history.
+ */
+async function getUserKeywordPattern(userId) {
+  const result = await query(
+    `SELECT a.headline, a.summary
+     FROM user_feedback uf
+     JOIN articles a ON uf.article_id = a.id
+     WHERE uf.user_id = $1 AND uf.feedback = 'relevant'
+     ORDER BY uf.created_at DESC
+     LIMIT 50`,
+    [userId]
+  );
+
+  if (result.rows.length === 0) return null;
+
+  const wordFreq = {};
+  for (const row of result.rows) {
+    const text = `${row.headline || ''} ${row.summary || ''}`.toLowerCase();
+    const words = text.match(/\b[a-z]{4,}\b/g) || [];
+    for (const word of words) {
+      if (!STOP_WORDS.has(word)) {
+        wordFreq[word] = (wordFreq[word] || 0) + 1;
+      }
+    }
+  }
+
+  const topKeywords = Object.entries(wordFreq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 15)
+    .map(([w]) => w);
+
+  return topKeywords.length > 0 ? topKeywords.join('|') : null;
+}
 
 const router = express.Router();
 
@@ -24,11 +83,12 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Load user preferences
-    const prefsResult = await query(
-      'SELECT key, value FROM user_preferences WHERE user_id = $1',
-      [userId]
-    );
+    // Load user preferences + keyword pattern in parallel
+    const [prefsResult, kwPattern] = await Promise.all([
+      query('SELECT key, value FROM user_preferences WHERE user_id = $1', [userId]),
+      getUserKeywordPattern(userId),
+    ]);
+
     const prefs = {};
     prefsResult.rows.forEach(r => { prefs[r.key] = r.value; });
 
@@ -42,10 +102,17 @@ router.get('/', async (req, res) => {
     const keywordsExclude = Array.isArray(prefs.keywords_exclude) ? prefs.keywords_exclude : [];
     const strictness = prefs.match_strictness === 'strict' ? 'strict' : 'loose';
 
-    // Build dynamic query
+    // $1 = userId (reused for CTE, feedback exclusion, and saved check)
+    const params = [userId];
+    let paramIdx = 2;
+
+    // $2 = keyword pattern (optional — null disables the boost)
+    params.push(kwPattern); // may be null; CASE WHEN null => 0 boost
+    const kwParamIdx = paramIdx;
+    paramIdx++;
+
+    // Build WHERE conditions
     const conditions = ['1=1'];
-    const params = [];
-    let paramIdx = 1;
 
     // Sector filter
     if (sectors) {
@@ -69,7 +136,7 @@ router.get('/', async (req, res) => {
       paramIdx++;
     }
 
-    // Keyword include filter (strict mode: require a keyword match)
+    // Keyword include filter (strict mode)
     if (strictness === 'strict' && keywordsInclude.length > 0) {
       const includePattern = keywordsInclude.join('|');
       conditions.push(`(a.headline ~* $${paramIdx} OR a.summary ~* $${paramIdx})`);
@@ -77,23 +144,26 @@ router.get('/', async (req, res) => {
       paramIdx++;
     }
 
-    // Exclude articles user already gave feedback on
-    conditions.push(`a.id NOT IN (SELECT article_id FROM user_feedback WHERE user_id = $${paramIdx})`);
-    params.push(userId);
-    paramIdx++;
-
-    // is_saved check param index
-    const savedParamIdx = paramIdx;
-    params.push(userId);
-    paramIdx++;
+    // Exclude articles user already gave feedback on (reuses $1)
+    conditions.push(`a.id NOT IN (SELECT article_id FROM user_feedback WHERE user_id = $1)`);
 
     const sql = `
+      WITH user_sector_affinity AS (
+        SELECT
+          a.sector,
+          COUNT(CASE WHEN uf.feedback = 'relevant' THEN 1 END)::float
+          / NULLIF(COUNT(*), 0) AS affinity
+        FROM user_feedback uf
+        JOIN articles a ON uf.article_id = a.id
+        WHERE uf.user_id = $1
+        GROUP BY a.sector
+      )
       SELECT
         a.id, a.headline, a.url, a.summary, a.source_name, a.source_key,
         a.sector, a.geography, a.published_at, a.fetched_at,
         EXISTS(
           SELECT 1 FROM user_saved_articles usa
-          WHERE usa.article_id = a.id AND usa.user_id = $${savedParamIdx}
+          WHERE usa.article_id = a.id AND usa.user_id = $1
         ) AS is_saved,
         COALESCE(scores.global_score, 0) AS global_score
       FROM articles a
@@ -105,11 +175,19 @@ router.get('/', async (req, res) => {
         GROUP BY article_id
       ) scores ON a.id = scores.article_id
       LEFT JOIN rss_sources rs ON a.source_key = rs.id::text
+      LEFT JOIN user_sector_affinity usa ON a.sector = usa.sector
       WHERE ${conditions.join(' AND ')}
       ORDER BY (
         EXTRACT(EPOCH FROM COALESCE(a.published_at, a.fetched_at)) / 3600.0
         + COALESCE(scores.global_score, 0) * 10.0
         + (COALESCE(rs.quality_score, 0.5) - 0.5) * 20.0
+        + COALESCE(usa.affinity, 0) * 15.0
+        + CASE
+            WHEN $${kwParamIdx} IS NOT NULL
+             AND (a.headline ~* $${kwParamIdx} OR a.summary ~* $${kwParamIdx})
+            THEN 5.0
+            ELSE 0.0
+          END
       ) DESC
       LIMIT 50
     `;

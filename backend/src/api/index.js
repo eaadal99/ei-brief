@@ -22,6 +22,7 @@ import preferencesRouter from './routes/preferences.js';
 import sourcesRouter from './routes/sources.js';
 import newsletterRouter from './routes/newsletter.js';
 import systemRouter from './routes/system.js';
+import digestRouter from './routes/digest.js';
 import { startScheduler, stopScheduler } from '../scheduler/index.js';
 import RSS_CATALOG from '../lib/rss-catalog.js';
 
@@ -92,6 +93,7 @@ app.use('/api/v1/preferences', preferencesRouter);
 app.use('/api/v1/sources', sourcesRouter);
 app.use('/api/v1/newsletter', newsletterRouter);
 app.use('/api/v1/system', systemRouter);
+app.use('/api/v1/digest', digestRouter);
 
 // ── Error handler ────────────────────────────────────────────────────────────
 

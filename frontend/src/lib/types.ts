@@ -54,6 +54,27 @@ export interface NewsletterArchiveItem {
   article_count: number;
 }
 
+export interface DigestArticle {
+  id: string;
+  headline: string;
+  url: string | null;
+  source_name: string | null;
+  published_at: string | null;
+}
+
+export interface DigestSection {
+  sector: string;
+  label: string;
+  summary: string;
+  articles: DigestArticle[];
+}
+
+export interface Digest {
+  sections: DigestSection[];
+  generated_at: string;
+  cached: boolean;
+}
+
 export interface SystemStatus {
   status: string;
   database: string;
