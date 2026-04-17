@@ -16,8 +16,8 @@ export function HeroCard({ article, onSave, onFeedback }: HeroCardProps) {
   const time = shortRelativeTime(article.published_at);
 
   return (
-    <article className="group relative flex flex-col gap-5 py-8 border-t border-b border-border animate-fade-up">
-      {/* Left accent rule */}
+    <article className="group relative flex flex-col gap-5 py-10 animate-fade-up">
+      {/* Top accent rule — sector-coloured, short, as a quiet header mark */}
       <span
         className="absolute left-0 top-0 h-px w-24"
         style={{ backgroundColor: sector?.color ?? 'var(--brand)' }}

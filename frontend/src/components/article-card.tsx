@@ -86,7 +86,7 @@ export function ArticleCard({
   return (
     <article
       className={[
-        'group relative flex gap-4 sm:gap-6 py-5 border-b border-border transition-opacity animate-fade-up',
+        'group relative flex gap-4 sm:gap-6 py-6 transition-opacity animate-fade-up',
         isPending ? 'opacity-50' : '',
       ].join(' ')}
       style={{ animationDelay: `${Math.min(index, 10) * 25}ms` }}
