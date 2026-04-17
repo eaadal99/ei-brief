@@ -6,7 +6,6 @@ import PageShell from '@/components/page-shell';
 import { ArticleCard } from '@/components/article-card';
 import { getSavedArticles, toggleSave } from '@/lib/api';
 import type { Article } from '@/lib/types';
-import { Button } from '@/components/ui/button';
 
 export default function SavedPage() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -24,9 +23,7 @@ export default function SavedPage() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   async function handleUnsave(articleId: string) {
     await toggleSave(articleId);
@@ -43,20 +40,27 @@ export default function SavedPage() {
       }
     >
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
-          Loading saved articles...
+        <div className="flex items-center justify-center py-20">
+          <div className="w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin" />
         </div>
       ) : articles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-          <BookmarkEmptyIcon className="size-10 text-muted-foreground/30" />
-          <div>
-            <p className="text-sm font-medium">No saved articles yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Tap the bookmark icon on any article to save it here.
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5 text-muted-foreground">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+            </svg>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">No saved articles yet</p>
+            <p className="text-sm text-muted-foreground">
+              Tap the save button on any article to bookmark it here.
             </p>
           </div>
-          <Link href="/">
-            <Button variant="outline" size="sm">Back to feed</Button>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/80 hover:text-foreground transition-colors"
+          >
+            Back to feed
           </Link>
         </div>
       ) : (
@@ -72,22 +76,5 @@ export default function SavedPage() {
         </div>
       )}
     </PageShell>
-  );
-}
-
-function BookmarkEmptyIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-    </svg>
   );
 }
