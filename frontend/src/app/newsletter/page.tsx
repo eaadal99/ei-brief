@@ -244,19 +244,31 @@ function GenerateTab() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-snug truncate">
+                <p className="text-sm font-medium leading-snug text-foreground">
                   {article.headline}
                 </p>
-                <div className="flex items-center gap-2 mt-0.5">
+                {article.summary && (
+                  <p className="mt-1 text-[12.5px] text-muted-foreground leading-relaxed line-clamp-2">
+                    {article.summary}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
                   {article.sector && (
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="eyebrow">
                       {SECTORS.find((s) => s.key === article.sector)?.label ?? article.sector}
                     </span>
                   )}
                   {article.source_name && (
-                    <span className="text-[11px] text-muted-foreground">
-                      {article.source_name}
-                    </span>
+                    <>
+                      <span className="opacity-40">·</span>
+                      <span>{article.source_name}</span>
+                    </>
+                  )}
+                  {article.geography && (
+                    <>
+                      <span className="opacity-40">·</span>
+                      <span>{article.geography}</span>
+                    </>
                   )}
                 </div>
               </div>
