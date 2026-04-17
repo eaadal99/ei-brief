@@ -177,7 +177,7 @@ export default function MyFeedPage() {
           {/* Secondary row */}
           {secondary.length > 0 && (
             <section>
-              <div className="grid md:grid-cols-2 gap-0 md:gap-8 border-t border-border">
+              <div className="grid md:grid-cols-2 gap-0 md:gap-8">
                 {secondary.map((a, i) => (
                   <div key={a.id} className={i === 0 ? 'md:border-r md:border-border md:pr-8 md:pl-0' : 'md:pl-0'}>
                     <ArticleCard
