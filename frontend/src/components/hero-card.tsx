@@ -17,12 +17,6 @@ export function HeroCard({ article, onSave, onFeedback }: HeroCardProps) {
 
   return (
     <article className="group relative flex flex-col gap-5 py-10 animate-fade-up">
-      {/* Top accent rule — sector-coloured, short, as a quiet header mark */}
-      <span
-        className="absolute left-0 top-0 h-px w-24"
-        style={{ backgroundColor: sector?.color ?? 'var(--brand)' }}
-      />
-
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 eyebrow text-muted-foreground">
           <SectorDot sector={article.sector} />
@@ -38,12 +32,12 @@ export function HeroCard({ article, onSave, onFeedback }: HeroCardProps) {
 
       {article.url ? (
         <a href={article.url} target="_blank" rel="noopener noreferrer" className="block">
-          <h2 className="display-serif text-[2.75rem] sm:text-[3.25rem] lg:text-[3.75rem] font-semibold leading-[1.02] text-foreground group-hover:text-foreground/85 transition-colors">
+          <h2 className="display-serif text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.05] text-foreground group-hover:text-foreground/85 transition-colors">
             {article.headline}
           </h2>
         </a>
       ) : (
-        <h2 className="display-serif text-[2.75rem] sm:text-[3.25rem] lg:text-[3.75rem] font-semibold leading-[1.02] text-foreground">
+        <h2 className="display-serif text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.05] text-foreground">
           {article.headline}
         </h2>
       )}

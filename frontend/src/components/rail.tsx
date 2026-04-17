@@ -3,6 +3,17 @@
 import { useRef } from 'react';
 import { SECTOR_MAP } from '@/lib/types';
 
+function SectorDotLarge({ sector }: { sector: string }) {
+  const s = SECTOR_MAP[sector as keyof typeof SECTOR_MAP];
+  return (
+    <span
+      aria-hidden
+      className="inline-block w-2 h-2 rounded-full shrink-0 translate-y-[-3px]"
+      style={{ backgroundColor: s?.color ?? 'var(--brand)' }}
+    />
+  );
+}
+
 interface RailProps {
   sectorKey: string;
   children: React.ReactNode;
@@ -26,10 +37,7 @@ export function Rail({ sectorKey, children, count }: RailProps) {
       {/* Heading row */}
       <div className="flex items-end justify-between gap-3 mb-3">
         <div className="flex items-baseline gap-3">
-          <span
-            className="block w-8 h-px mb-1.5"
-            style={{ backgroundColor: sector?.color ?? 'var(--brand)' }}
-          />
+          <SectorDotLarge sector={sectorKey} />
           <h3 className="display-serif text-2xl font-semibold text-foreground">
             {sector?.label ?? 'Other'}
           </h3>
@@ -69,9 +77,6 @@ export function Rail({ sectorKey, children, count }: RailProps) {
         {children}
       </div>
 
-      {/* Edge fades */}
-      <span className="pointer-events-none absolute left-0 top-12 bottom-2 w-8 bg-gradient-to-r from-background to-transparent" />
-      <span className="pointer-events-none absolute right-0 top-12 bottom-2 w-8 bg-gradient-to-l from-background to-transparent" />
     </section>
   );
 }
