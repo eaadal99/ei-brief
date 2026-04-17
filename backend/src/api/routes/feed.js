@@ -175,13 +175,13 @@ router.get('/', async (req, res) => {
         GROUP BY article_id
       ) scores ON a.id = scores.article_id
       LEFT JOIN rss_sources rs ON a.source_key = rs.id::text
-      LEFT JOIN user_sector_affinity usa ON a.sector = usa.sector
+      LEFT JOIN user_sector_affinity sa ON a.sector = sa.sector
       WHERE ${conditions.join(' AND ')}
       ORDER BY (
         EXTRACT(EPOCH FROM COALESCE(a.published_at, a.fetched_at)) / 3600.0
         + COALESCE(scores.global_score, 0) * 10.0
         + (COALESCE(rs.quality_score, 0.5) - 0.5) * 20.0
-        + COALESCE(usa.affinity, 0) * 15.0
+        + COALESCE(sa.affinity, 0) * 15.0
         + CASE
             WHEN $${kwParamIdx} IS NOT NULL
              AND (a.headline ~* $${kwParamIdx} OR a.summary ~* $${kwParamIdx})
@@ -195,8 +195,13 @@ router.get('/', async (req, res) => {
     const result = await query(sql, params);
     return res.json({ articles: result.rows });
   } catch (err) {
-    console.error('[feed] Error loading personal feed:', err.message);
-    return res.status(500).json({ error: 'Failed to load feed' });
+    console.error('[feed] Error loading personal feed:', err);
+    console.error('[feed] Stack:', err.stack);
+    return res.status(500).json({
+      error: 'Failed to load feed',
+      detail: err.message,
+      code: err.code,
+    });
   }
 });
 
