@@ -61,7 +61,7 @@ export default function MarketTicker() {
 
   if (pulse.length === 0) {
     return (
-      <div className="h-8 w-full border-b border-border bg-background overflow-hidden" />
+      <div className="h-8 w-full bg-background overflow-hidden" />
     );
   }
 
@@ -93,7 +93,7 @@ export default function MarketTicker() {
   );
 
   return (
-    <div className="h-8 w-full border-b border-border bg-background overflow-hidden flex items-stretch text-[11px] relative">
+    <div className="h-8 w-full bg-background overflow-hidden flex items-stretch text-[11px] relative">
       <div className="flex items-center gap-1.5 px-4 border-r border-border shrink-0 bg-background z-10">
         <span className="relative inline-flex">
           <span className="w-1.5 h-1.5 rounded-full brand-bg animate-pulse-dot" />

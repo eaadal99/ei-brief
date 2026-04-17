@@ -65,7 +65,7 @@ export default function PageShell({
         {!hideTicker && <MarketTicker />}
 
         {/* Header */}
-        <header className="sticky top-0 z-20 bg-background/85 backdrop-blur-md border-b border-border no-print">
+        <header className="sticky top-0 z-20 bg-background no-print">
           <div className={`px-6 py-6 mx-auto ${widthClass[width]}`}>
             <div className="flex items-end justify-between gap-3">
               <div>
