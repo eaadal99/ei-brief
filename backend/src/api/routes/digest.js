@@ -89,20 +89,24 @@ router.get('/', async (req, res) => {
       if (articles.rows.length < 2) return null; // skip sparse sectors
 
       const label = SECTOR_LABELS[sector] || sector;
-      const headlines = articles.rows
-        .map((a, i) => `${i + 1}. ${a.headline}`)
+      const dossier = articles.rows
+        .map((a, i) => {
+          const s = (a.summary || '').trim().replace(/\s+/g, ' ').slice(0, 280);
+          return `${i + 1}. ${a.headline}${a.source_name ? ` (${a.source_name})` : ''}${s ? `\n   ${s}` : ''}`;
+        })
         .join('\n');
 
       let summary = null;
       if (isAvailable()) {
         summary = await complete({
           system:
-            'You are a senior energy industry analyst writing a concise morning brief for expert professionals. ' +
-            'Be specific, factual, and authoritative. No filler phrases like "In recent news" or "It is worth noting". ' +
-            'Write in present tense. Maximum 3 sentences.',
-          user: `Summarise these ${label} headlines for an expert audience:\n\n${headlines}`,
-          maxTokens: 180,
-          temperature: 0.2,
+            'You are a senior energy industry analyst writing a narrative morning brief for expert professionals — energy lawyers, counsel, and consultants. ' +
+            'Write the way a trusted columnist at the Financial Times or Bloomberg would: authoritative, specific, naming the players and the stakes. ' +
+            'Synthesise the articles into a flowing read, not a list. Surface what connects the stories and what it means. ' +
+            'No filler ("In recent news", "It is worth noting", "Amid the ongoing"). No headings, no bullets. Present tense. Plain prose, 2 short paragraphs (~120 words total).',
+          user: `Write the ${label} section of this morning's brief, drawing on the stories below. Produce two short paragraphs that read like a column — lead with the most important development, then widen out to the connective tissue across the rest.\n\n${dossier}`,
+          maxTokens: 320,
+          temperature: 0.35,
         });
       }
 
@@ -123,7 +127,28 @@ router.get('/', async (req, res) => {
     const sectionResults = await Promise.all(sectionPromises);
     const sections = sectionResults.filter(Boolean);
 
+    // Editor's intro — one paragraph setting the tone for the whole brief
+    let intro = null;
+    if (isAvailable() && sections.length > 0) {
+      const overview = sections
+        .map(s => `${s.label} (${s.articles.length}): ${s.articles[0]?.headline ?? ''}`)
+        .join('\n');
+      try {
+        intro = await complete({
+          system:
+            'You are the editor of an energy-sector morning brief for lawyers and consultants. ' +
+            'Write ONE short paragraph (2-3 sentences, max 55 words) as an editor\'s note — set the tone for today, name the one or two sectors where the most interesting activity is, and avoid generic openers. Plain prose, no greeting word.',
+          user: `Sectors covered today and their lead stories:\n\n${overview}\n\nWrite the editor\'s note.`,
+          maxTokens: 160,
+          temperature: 0.4,
+        });
+      } catch (e) {
+        console.error('[digest] intro generation failed:', e.message);
+      }
+    }
+
     const digest = {
+      intro: intro || null,
       sections,
       generated_at: new Date().toISOString(),
       cached: false,

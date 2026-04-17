@@ -14,18 +14,23 @@ import { getCurrentUser } from '@/lib/auth';
 
 function BriefSection({ section, index }: { section: DigestSection; index: number }) {
   const meta = SECTOR_MAP[section.sector as keyof typeof SECTOR_MAP];
+  // Split narrative into paragraphs (model returns 2 short paragraphs separated by blank lines).
+  const paragraphs = (section.summary || '')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return (
     <section
-      className="py-10 border-t border-border animate-fade-up"
+      className="py-12 animate-fade-up"
       style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
     >
-      {/* Sector rule */}
-      <span
-        className="block w-12 h-px mb-4"
-        style={{ backgroundColor: meta?.color ?? 'var(--brand)' }}
-      />
-
-      <div className="flex items-baseline gap-3 mb-4">
+      {/* Section header */}
+      <div className="flex items-center gap-3 mb-5">
+        <span
+          className="block w-8 h-px shrink-0"
+          style={{ backgroundColor: meta?.color ?? 'var(--brand)' }}
+        />
         <div className="flex items-center gap-2 eyebrow text-muted-foreground">
           <SectorDot sector={section.sector} />
           <span>{section.label}</span>
@@ -35,42 +40,52 @@ function BriefSection({ section, index }: { section: DigestSection; index: numbe
         </span>
       </div>
 
-      <h2 className="display-serif text-3xl sm:text-4xl font-semibold leading-[1.05] mb-5 text-balance">
+      {/* Headline drawn from the lead story */}
+      <h2 className="display-serif text-[26px] sm:text-[32px] font-semibold leading-[1.1] mb-5 text-balance">
         {briefTitle(section)}
       </h2>
 
-      <blockquote className="display-serif italic text-lg text-foreground/75 leading-relaxed max-w-2xl text-balance">
-        &ldquo;{section.summary}&rdquo;
-      </blockquote>
+      {/* Narrative body */}
+      <div className="max-w-2xl space-y-4 text-[15px] sm:text-base leading-[1.75] text-foreground/85">
+        {paragraphs.length > 0 ? (
+          paragraphs.map((p, i) => <p key={i}>{p}</p>)
+        ) : (
+          <p>{section.summary}</p>
+        )}
+      </div>
 
-      <ul className="mt-6 divide-y divide-border/70 border-t border-border/70">
-        {section.articles.map((a) => (
-          <li key={a.id} className="py-3 flex items-center gap-3">
-            <span className="font-mono text-[11px] text-muted-foreground w-10 tabular-nums shrink-0">
-              {shortRelativeTime(a.published_at)}
-            </span>
-            <div className="flex-1 min-w-0">
-              {a.url ? (
-                <a
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-foreground hover:brand-text transition-colors line-clamp-2"
-                >
-                  {a.headline}
-                </a>
-              ) : (
-                <span className="text-sm font-medium">{a.headline}</span>
-              )}
-            </div>
-            {a.source_name && (
-              <span className="eyebrow text-muted-foreground/80 shrink-0 hidden sm:inline">
-                {a.source_name}
+      {/* Reference list */}
+      <div className="mt-8 pt-5 border-t border-border/60">
+        <p className="eyebrow text-muted-foreground mb-3">On the wire</p>
+        <ul className="space-y-2.5">
+          {section.articles.map((a) => (
+            <li key={a.id} className="flex items-baseline gap-3">
+              <span className="font-mono text-[11px] text-muted-foreground w-10 tabular-nums shrink-0">
+                {shortRelativeTime(a.published_at)}
               </span>
-            )}
-          </li>
-        ))}
-      </ul>
+              <div className="flex-1 min-w-0">
+                {a.url ? (
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-foreground hover:text-foreground/70 transition-colors"
+                  >
+                    {a.headline}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium">{a.headline}</span>
+                )}
+                {a.source_name && (
+                  <span className="ml-2 eyebrow text-muted-foreground/80">
+                    {a.source_name}
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -214,9 +229,14 @@ export default function DigestPage() {
         ) : (
           <>
             {/* Editor's note */}
-            <div className="pb-6 animate-fade-up">
-              <p className="display-serif italic text-xl sm:text-2xl text-foreground/85 leading-[1.35] text-balance max-w-2xl">
-                {salutation}{greetingName ? `, ${greetingName}` : ''}.  Here&rsquo;s what moved in energy over the past 48 hours — across {digest.sections.length} sector{digest.sections.length === 1 ? '' : 's'} you follow.
+            <div className="pb-8 animate-fade-up max-w-2xl">
+              <p className="display-serif italic text-xl sm:text-[26px] text-foreground/90 leading-[1.35] text-balance mb-3">
+                {salutation}{greetingName ? `, ${greetingName}` : ''}.
+              </p>
+              <p className="text-[15px] sm:text-base text-foreground/75 leading-[1.75] text-balance">
+                {digest.intro
+                  ? digest.intro
+                  : `Here's what moved in energy over the past 48 hours — across ${digest.sections.length} sector${digest.sections.length === 1 ? '' : 's'} you follow.`}
               </p>
             </div>
 
@@ -235,7 +255,7 @@ export default function DigestPage() {
             </nav>
 
             {/* Sections */}
-            <div>
+            <div className="divide-y divide-border">
               {digest.sections.map((section, i) => (
                 <div id={`section-${section.sector}`} key={section.sector}>
                   <BriefSection section={section} index={i} />

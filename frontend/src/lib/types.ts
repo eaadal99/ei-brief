@@ -70,6 +70,7 @@ export interface DigestSection {
 }
 
 export interface Digest {
+  intro?: string | null;
   sections: DigestSection[];
   generated_at: string;
   cached: boolean;
