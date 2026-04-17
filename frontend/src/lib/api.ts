@@ -29,7 +29,12 @@ export async function api(path: string, opts: RequestInit = {}): Promise<Respons
     headers,
   });
 
-  if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login')) {
+  if (
+    res.status === 401 &&
+    typeof window !== 'undefined' &&
+    !path.includes('/auth/login') &&
+    window.location.pathname !== '/login'
+  ) {
     window.location.href = '/login';
   }
 
