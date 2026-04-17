@@ -175,7 +175,7 @@ export default function LoginPage() {
           </form>
 
           <p className="eyebrow text-muted-foreground/70 text-center">
-            Tip · Press <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-border">⌘K</kbd> anywhere in the app
+            Curated for energy &amp; infrastructure counsel.
           </p>
         </div>
       </section>

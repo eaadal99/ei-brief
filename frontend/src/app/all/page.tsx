@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import PageShell from '@/components/page-shell';
-import { ListRow } from '@/components/list-row';
+import { ArticleCard } from '@/components/article-card';
 import { getAllArticles, toggleSave } from '@/lib/api';
 import type { Article } from '@/lib/types';
 import { SECTORS, GEOGRAPHIES, SECTOR_MAP } from '@/lib/types';
@@ -93,7 +93,7 @@ function AllNewsInner() {
     >
       <div className="max-w-[1100px] mx-auto">
         {/* Search + filter toolbar */}
-        <div className="sticky top-[calc(env(safe-area-inset-top)+88px)] z-10 -mt-4 pt-4 pb-4 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="sticky top-[calc(env(safe-area-inset-top)+88px)] z-10 -mt-4 pt-4 pb-4 bg-background">
           <form onSubmit={handleSearch} className="relative mb-3">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
               <circle cx="11" cy="11" r="7" />
@@ -200,9 +200,16 @@ function AllNewsInner() {
           </div>
         ) : (
           <>
-            <div className="divide-y divide-border/70">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
               {articles.map((a, i) => (
-                <ListRow key={a.id} article={a} onSave={handleSave} index={i} />
+                <div key={a.id} className="border-b border-border/50 last:border-0">
+                  <ArticleCard
+                    article={a}
+                    onSave={handleSave}
+                    showFeedback={false}
+                    index={i}
+                  />
+                </div>
               ))}
             </div>
 

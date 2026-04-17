@@ -145,7 +145,6 @@ export default function DigestPage() {
     <PageShell
       title="The Brief"
       eyebrow={today}
-      hideTicker
       width="narrow"
       actions={
         digest ? (

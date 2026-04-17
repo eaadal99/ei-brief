@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import AppSidebar from '@/components/app-sidebar';
 import MobileNav from '@/components/mobile-nav';
-import MarketTicker from '@/components/market-ticker';
 import ShortcutsHelp from '@/components/shortcuts-help';
 
 interface PageShellProps {
@@ -15,7 +14,7 @@ interface PageShellProps {
   subtitle?: string;
   /** Optional element rendered to the right of the title (e.g. action buttons) */
   actions?: React.ReactNode;
-  /** Hide the market ticker (e.g. for the digest print view) */
+  /** @deprecated ticker removed */
   hideTicker?: boolean;
   /** Max-width of the content container; default 'content' (1100px). 'narrow' = 780px, 'wide' = full */
   width?: 'narrow' | 'content' | 'wide';
@@ -33,7 +32,6 @@ export default function PageShell({
   eyebrow,
   subtitle,
   actions,
-  hideTicker = false,
   width = 'content',
 }: PageShellProps) {
   const router = useRouter();
@@ -61,9 +59,6 @@ export default function PageShell({
       <AppSidebar />
 
       <main className="flex-1 lg:pl-16 pb-24 lg:pb-0">
-        {/* Market ticker */}
-        {!hideTicker && <MarketTicker />}
-
         {/* Header */}
         <header className="sticky top-0 z-20 bg-background no-print">
           <div className={`px-6 py-6 mx-auto ${widthClass[width]}`}>
