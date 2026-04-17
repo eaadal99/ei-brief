@@ -9,14 +9,22 @@ interface HeroCardProps {
   article: Article;
   onSave?: (id: string) => void;
   onFeedback?: (id: string, f: 'relevant' | 'not_relevant') => void;
+  notedState?: 'relevant' | 'not_relevant';
 }
 
-export function HeroCard({ article, onSave, onFeedback }: HeroCardProps) {
+export function HeroCard({ article, onSave, onFeedback, notedState }: HeroCardProps) {
   const sector = article.sector ? SECTOR_MAP[article.sector as keyof typeof SECTOR_MAP] : null;
   const time = shortRelativeTime(article.published_at);
 
   return (
     <article className="group relative flex flex-col gap-5 py-10 animate-fade-up">
+      {notedState && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 pointer-events-none z-10">
+          <span className="eyebrow text-xs text-foreground">
+            {notedState === 'relevant' ? '✓ Noted' : '✓ Skipped'}
+          </span>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 eyebrow text-muted-foreground">
           <SectorDot sector={article.sector} />

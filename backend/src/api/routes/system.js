@@ -9,6 +9,9 @@ import express from 'express';
 import { query, pool } from '../../lib/db.js';
 import { isAvailable as aiAvailable, getProvider, getUsageStats } from '../../lib/ai-client.js';
 import { fetchAllSources } from '../../engine/rss-fetcher.js';
+import { fetchGdelt } from '../../engine/gdelt-fetcher.js';
+import { fetchGuardian } from '../../engine/guardian-fetcher.js';
+import { enrichArticles } from '../../engine/enrichment.js';
 
 const router = express.Router();
 
@@ -105,18 +108,37 @@ router.post('/run', async (req, res) => {
   runState.lastError = null;
   res.json({ success: true, message: 'Run started' });
 
-  // Run in background
+  // Run in background — all three fetchers in parallel
   const t0 = Date.now();
   try {
-    const result = await fetchAllSources();
+    const [rss, gdelt, guardian] = await Promise.allSettled([
+      fetchAllSources(),
+      fetchGdelt(),
+      fetchGuardian(),
+    ]);
+
+    const rssAdded = rss.status === 'fulfilled' ? (rss.value?.articlesAdded ?? 0) : 0;
+    const gdeltAdded = gdelt.status === 'fulfilled' ? (gdelt.value?.added ?? 0) : 0;
+    const guardianAdded = guardian.status === 'fulfilled' ? (guardian.value?.added ?? 0) : 0;
+    const totalAdded = rssAdded + gdeltAdded + guardianAdded;
+
+    // Enrich unenriched articles from GDELT/Guardian
+    if (gdeltAdded + guardianAdded > 0) {
+      try {
+        await enrichArticles();
+      } catch (e) {
+        console.error('[system] Enrichment failed:', e.message);
+      }
+    }
+
     runState = {
       running: false,
       lastRun: new Date().toISOString(),
       lastDuration: Date.now() - t0,
       lastError: null,
-      articlesAdded: result.articlesAdded,
+      articlesAdded: totalAdded,
     };
-    console.log(`[system] Manual run complete: ${result.articlesAdded} articles added in ${Date.now() - t0}ms`);
+    console.log(`[system] Manual run complete: ${rssAdded} RSS + ${gdeltAdded} GDELT + ${guardianAdded} Guardian = ${totalAdded} total in ${Date.now() - t0}ms`);
   } catch (err) {
     runState = {
       running: false,

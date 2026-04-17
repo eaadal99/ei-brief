@@ -13,6 +13,8 @@ interface ArticleCardProps {
   onSave?: (id: string) => void;
   showFeedback?: boolean;
   feedbackState?: 'relevant' | 'not_relevant';
+  /** Brief flash overlay shown after feedback is submitted, before card exits */
+  notedState?: 'relevant' | 'not_relevant';
   /** 'standard' = full card (default), 'compact' = tile for rails */
   variant?: 'standard' | 'compact';
   index?: number;
@@ -24,6 +26,7 @@ export function ArticleCard({
   onSave,
   showFeedback = true,
   feedbackState,
+  notedState,
   variant = 'standard',
   index = 0,
 }: ArticleCardProps) {
@@ -34,9 +37,17 @@ export function ArticleCard({
   if (variant === 'compact') {
     return (
       <article
-        className="group snap-start shrink-0 w-[320px] flex flex-col gap-3 py-4 px-4 bg-card/60 rounded-lg hover:bg-card hover:-translate-y-0.5 transition-all duration-200 animate-fade-up"
+        className="group relative snap-start shrink-0 w-[320px] flex flex-col gap-3 py-4 px-4 bg-card/60 rounded-lg hover:bg-card hover:-translate-y-0.5 transition-all duration-200 animate-fade-up"
         style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
       >
+        {/* Noted/Skipped flash overlay */}
+        {notedState && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/80 pointer-events-none z-10">
+            <span className="eyebrow text-xs text-foreground">
+              {notedState === 'relevant' ? '✓ Noted' : '✓ Skipped'}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 eyebrow text-muted-foreground">
             <SectorDot sector={article.sector} />
@@ -65,18 +76,44 @@ export function ArticleCard({
         )}
 
         <div className="mt-auto pt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span className="truncate max-w-[60%]">{article.source_name}</span>
-          {onSave && (
-            <button
-              onClick={() => onSave(article.id)}
-              className={`transition-colors ${article.is_saved ? 'text-foreground' : 'hover:text-foreground'}`}
-              title={article.is_saved ? 'Unsave' : 'Save'}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill={article.is_saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-              </svg>
-            </button>
-          )}
+          <span className="truncate max-w-[50%]">{article.source_name}</span>
+          <div className="flex items-center gap-1">
+            {onFeedback && (
+              <>
+                <button
+                  onClick={() => onFeedback(article.id, 'relevant')}
+                  className="p-1 rounded hover:text-emerald-400 transition-colors"
+                  title="Relevant"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+                    <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => onFeedback(article.id, 'not_relevant')}
+                  className="p-1 rounded hover:text-rose-400 transition-colors"
+                  title="Skip"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z" />
+                    <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                  </svg>
+                </button>
+              </>
+            )}
+            {onSave && (
+              <button
+                onClick={() => onSave(article.id)}
+                className={`p-1 rounded transition-colors ${article.is_saved ? 'text-foreground' : 'hover:text-foreground'}`}
+                title={article.is_saved ? 'Unsave' : 'Save'}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={article.is_saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </article>
     );
@@ -91,6 +128,13 @@ export function ArticleCard({
       ].join(' ')}
       style={{ animationDelay: `${Math.min(index, 10) * 25}ms` }}
     >
+      {notedState && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 pointer-events-none z-10">
+          <span className="eyebrow text-xs text-foreground">
+            {notedState === 'relevant' ? '✓ Noted' : '✓ Skipped'}
+          </span>
+        </div>
+      )}
       {/* Left meta column (desktop) */}
       <div className="hidden sm:flex flex-col gap-2 shrink-0 w-[120px] pt-1">
         <div className="flex items-center gap-1.5 eyebrow text-muted-foreground">
