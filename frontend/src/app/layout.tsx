@@ -42,7 +42,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="ink"
           themes={["ink", "paper"]}
-          value={{ ink: "", paper: "paper" }}
+          value={{ ink: "ink", paper: "paper" }}
           enableSystem={false}
           storageKey="ei-brief-theme"
         >
