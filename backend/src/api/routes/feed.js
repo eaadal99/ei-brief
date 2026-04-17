@@ -183,8 +183,8 @@ router.get('/', async (req, res) => {
         + (COALESCE(rs.quality_score, 0.5) - 0.5) * 20.0
         + COALESCE(sa.affinity, 0) * 15.0
         + CASE
-            WHEN $${kwParamIdx} IS NOT NULL
-             AND (a.headline ~* $${kwParamIdx} OR a.summary ~* $${kwParamIdx})
+            WHEN $${kwParamIdx}::text IS NOT NULL
+             AND (a.headline ~* $${kwParamIdx}::text OR a.summary ~* $${kwParamIdx}::text)
             THEN 5.0
             ELSE 0.0
           END
