@@ -6,8 +6,8 @@ import { ArticleCard } from '@/components/article-card';
 import { getAllArticles, toggleSave } from '@/lib/api';
 import type { Article } from '@/lib/types';
 import { SECTORS, GEOGRAPHIES } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -15,7 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
 
 export default function AllNewsPage() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -45,16 +53,12 @@ export default function AllNewsPage() {
     }
   }, [sector, geography, search, offset]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   async function handleSave(articleId: string) {
     const result = await toggleSave(articleId);
     setArticles((prev) =>
-      prev.map((a) =>
-        a.id === articleId ? { ...a, is_saved: result.is_saved } : a
-      )
+      prev.map((a) => a.id === articleId ? { ...a, is_saved: result.is_saved } : a)
     );
   }
 
@@ -65,123 +69,133 @@ export default function AllNewsPage() {
   }
 
   function clearFilters() {
-    setSector('');
-    setGeography('');
-    setSearch('');
-    setSearchInput('');
-    setOffset(0);
+    setSector(''); setGeography(''); setSearch(''); setSearchInput(''); setOffset(0);
   }
 
   const hasFilters = !!sector || !!geography || !!search;
 
   return (
     <PageShell title="All News" subtitle="Browse all articles across every sector">
-      {/* Filters */}
-      <div className="flex flex-col gap-3 mb-5">
-        <form onSubmit={handleSearch} className="flex gap-2">
+
+      {/* Filter bar */}
+      <div className="space-y-3 mb-6">
+        {/* Search */}
+        <form onSubmit={handleSearch} className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search headlines..."
+            placeholder="Search headlines and summaries…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="flex-1"
+            className="pl-9 pr-20 h-10"
           />
-          <Button type="submit" size="sm">
+          <Button
+            type="submit"
+            size="sm"
+            variant="ghost"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 text-xs"
+          >
             Search
           </Button>
         </form>
 
-        <div className="flex flex-wrap gap-2">
-          <Select value={sector} onValueChange={(v: string | null) => { setSector(!v || v === 'all' ? '' : v); setOffset(0); }}>
-            <SelectTrigger className="w-[160px]">
+        {/* Dropdowns + clear */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={sector || 'all'}
+            onValueChange={(v: string | null) => { setSector(!v || v === 'all' ? '' : v); setOffset(0); }}
+          >
+            <SelectTrigger className="w-[152px] h-9 text-sm">
               <SelectValue placeholder="All sectors" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All sectors</SelectItem>
               {SECTORS.map((s) => (
-                <SelectItem key={s.key} value={s.key}>
-                  {s.label}
-                </SelectItem>
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={geography} onValueChange={(v: string | null) => { setGeography(!v || v === 'all' ? '' : v); setOffset(0); }}>
-            <SelectTrigger className="w-[160px]">
+          <Select
+            value={geography || 'all'}
+            onValueChange={(v: string | null) => { setGeography(!v || v === 'all' ? '' : v); setOffset(0); }}
+          >
+            <SelectTrigger className="w-[140px] h-9 text-sm">
               <SelectValue placeholder="All regions" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All regions</SelectItem>
               {GEOGRAPHIES.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g}
-                </SelectItem>
+                <SelectItem key={g} value={g}>{g}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           {hasFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+              </svg>
               Clear filters
-            </Button>
+            </button>
           )}
         </div>
 
         {/* Sector quick-pills */}
         <div className="flex flex-wrap gap-1.5">
           {SECTORS.filter((s) => s.key !== 'general').map((s) => (
-            <Badge
+            <button
               key={s.key}
-              variant={sector === s.key ? 'default' : 'outline'}
-              className="cursor-pointer select-none px-2.5 py-0.5 text-[11px]"
-              style={
-                sector === s.key
-                  ? { backgroundColor: s.color, borderColor: s.color, color: '#fff' }
-                  : {}
-              }
               onClick={() => { setSector(sector === s.key ? '' : s.key); setOffset(0); }}
+              className={[
+                'px-2.5 py-1 rounded-full text-[11px] font-medium transition-all',
+                sector === s.key ? 'text-white shadow-sm' : 'bg-muted text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+              style={sector === s.key ? { backgroundColor: s.color } : {}}
             >
               {s.label}
-            </Badge>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Articles */}
+      {/* Article list */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
-          Loading articles...
+        <div className="flex items-center justify-center py-20">
+          <div className="w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin" />
         </div>
       ) : articles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-muted-foreground text-sm">
-            No articles found. Try adjusting your filters.
-          </p>
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-2">
+          <p className="text-sm font-medium">No articles found</p>
+          <p className="text-sm text-muted-foreground">Try adjusting your filters or search terms.</p>
+          {hasFilters && (
+            <button onClick={clearFilters} className="mt-2 text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors">
+              Clear all filters
+            </button>
+          )}
         </div>
       ) : (
         <>
           <div className="flex flex-col gap-3">
             {articles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                article={article}
-                showFeedback={false}
-                onSave={handleSave}
-              />
+              <ArticleCard key={article.id} article={article} showFeedback={false} onSave={handleSave} />
             ))}
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between pt-6">
+          <div className="flex items-center justify-between pt-6 mt-2">
             <Button
               variant="outline"
               size="sm"
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - LIMIT))}
             >
-              Previous
+              ← Previous
             </Button>
             <span className="text-xs text-muted-foreground">
-              Showing {offset + 1}–{offset + articles.length}
+              {offset + 1}–{offset + articles.length}
             </span>
             <Button
               variant="outline"
@@ -189,7 +203,7 @@ export default function AllNewsPage() {
               disabled={articles.length < LIMIT}
               onClick={() => setOffset(offset + LIMIT)}
             >
-              Next
+              Next →
             </Button>
           </div>
         </>
