@@ -2,98 +2,103 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import PageShell from '@/components/page-shell';
 import { getDigest } from '@/lib/api';
 import type { Digest, DigestSection } from '@/lib/types';
 import { SECTOR_MAP } from '@/lib/types';
+import { SectorDot } from '@/components/sector-dot';
+import { shortRelativeTime } from '@/lib/reading-time';
+import { getCurrentUser } from '@/lib/auth';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Section ───────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
-function pubTimeShort(iso: string | null): string {
-  if (!iso) return '';
-  return timeAgo(iso);
-}
-
-// ── Section card ──────────────────────────────────────────────────────────────
-
-function SectionCard({ section }: { section: DigestSection }) {
+function BriefSection({ section, index }: { section: DigestSection; index: number }) {
   const meta = SECTOR_MAP[section.sector as keyof typeof SECTOR_MAP];
-  const color = meta?.color ?? '#78716C';
-
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden transition-all duration-200 hover:shadow-[0_4px_16px_oklch(0_0_0/7%)]">
-      {/* Sector header */}
-      <div className="px-4 pt-4 pb-3 border-b border-border/60" style={{ borderLeftColor: color, borderLeftWidth: 3 }}>
-        <span
-          className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-          style={{ backgroundColor: color + '1a', color }}
-        >
-          {section.label}
-        </span>
+    <section
+      className="py-10 border-t border-border animate-fade-up"
+      style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
+    >
+      {/* Sector rule */}
+      <span
+        className="block w-12 h-px mb-4"
+        style={{ backgroundColor: meta?.color ?? 'var(--brand)' }}
+      />
 
-        {/* AI summary */}
-        <p className="text-sm text-muted-foreground leading-relaxed mt-2.5 italic">
-          {section.summary}
-        </p>
+      <div className="flex items-baseline gap-3 mb-4">
+        <div className="flex items-center gap-2 eyebrow text-muted-foreground">
+          <SectorDot sector={section.sector} />
+          <span>{section.label}</span>
+        </div>
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {section.articles.length} stor{section.articles.length === 1 ? 'y' : 'ies'}
+        </span>
       </div>
 
-      {/* Article links */}
-      <ul className="divide-y divide-border/50">
-        {section.articles.slice(0, 3).map((article) => (
-          <li key={article.id} className="px-4 py-3 hover:bg-muted/40 transition-colors">
-            {article.url ? (
-              <a
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-start justify-between gap-3"
-              >
-                <span className="text-sm text-foreground group-hover:text-foreground/70 transition-colors leading-snug line-clamp-2 flex-1">
-                  {article.headline}
-                </span>
-                <div className="shrink-0 text-right mt-0.5">
-                  {article.source_name && (
-                    <span className="block text-[10px] text-muted-foreground">{article.source_name}</span>
-                  )}
-                  {article.published_at && (
-                    <span className="block text-[10px] text-muted-foreground/60 tabular-nums">{pubTimeShort(article.published_at)}</span>
-                  )}
-                </div>
-              </a>
-            ) : (
-              <span className="text-sm text-foreground leading-snug line-clamp-2">{article.headline}</span>
+      <h2 className="display-serif text-3xl sm:text-4xl font-semibold leading-[1.05] mb-5 text-balance">
+        {briefTitle(section)}
+      </h2>
+
+      <blockquote className="display-serif italic text-lg text-foreground/75 leading-relaxed max-w-2xl text-balance">
+        &ldquo;{section.summary}&rdquo;
+      </blockquote>
+
+      <ul className="mt-6 divide-y divide-border/70 border-t border-border/70">
+        {section.articles.map((a) => (
+          <li key={a.id} className="py-3 flex items-center gap-3">
+            <span className="font-mono text-[11px] text-muted-foreground w-10 tabular-nums shrink-0">
+              {shortRelativeTime(a.published_at)}
+            </span>
+            <div className="flex-1 min-w-0">
+              {a.url ? (
+                <a
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-foreground hover:brand-text transition-colors line-clamp-2"
+                >
+                  {a.headline}
+                </a>
+              ) : (
+                <span className="text-sm font-medium">{a.headline}</span>
+              )}
+            </div>
+            {a.source_name && (
+              <span className="eyebrow text-muted-foreground/80 shrink-0 hidden sm:inline">
+                {a.source_name}
+              </span>
             )}
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
+}
+
+/**
+ * Lift a title out of the first article headline. A cheap "editor's heading"
+ * that feels hand-written without asking the model for another round-trip.
+ */
+function briefTitle(section: DigestSection): string {
+  const first = section.articles[0]?.headline;
+  if (!first) return section.label;
+  // Clip to first natural break for a tighter display
+  const clipped = first.split(/[:—–|]/)[0].trim();
+  return clipped.length > 80 ? clipped.slice(0, 80) + '…' : clipped;
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
-function DigestSkeleton() {
+function BriefSkeleton() {
   return (
-    <div className="bg-card rounded-xl border border-border px-4 py-4 space-y-3 animate-pulse">
-      <div className="h-4 bg-muted rounded w-24" />
-      <div className="space-y-1.5">
-        <div className="h-3 bg-muted rounded w-full" />
-        <div className="h-3 bg-muted rounded w-5/6" />
-        <div className="h-3 bg-muted rounded w-4/5" />
+    <section className="py-10 border-t border-border animate-pulse space-y-4">
+      <div className="h-3 w-32 bg-muted rounded" />
+      <div className="h-10 w-4/5 bg-muted rounded" />
+      <div className="h-4 w-2/3 bg-muted rounded" />
+      <div className="space-y-2 pt-4">
+        {[1,2,3].map(i => <div key={i} className="h-4 w-full bg-muted rounded" />)}
       </div>
-      <div className="border-t border-border/50 pt-3 space-y-2">
-        {[1,2,3].map(i => <div key={i} className="h-3 bg-muted rounded w-full" />)}
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -104,6 +109,7 @@ export default function DigestPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [greetingName, setGreetingName] = useState<string>('');
 
   const load = useCallback(async (force = false) => {
     if (force) setRefreshing(true);
@@ -121,91 +127,130 @@ export default function DigestPage() {
     }
   }, []);
 
-  useEffect(() => { load(false); }, [load]);
+  useEffect(() => {
+    load(false);
+    const u = getCurrentUser();
+    setGreetingName(u?.display_name?.split(' ')[0] ?? u?.name ?? '');
+  }, [load]);
 
-  if (loading) {
-    return (
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/70 px-6 py-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="h-5 bg-muted rounded w-28 animate-pulse" />
-            <div className="h-3 bg-muted rounded w-48 mt-1.5 animate-pulse" />
-          </div>
-        </header>
-        <div className="px-6 py-6 max-w-2xl mx-auto space-y-4">
-          {[1,2,3].map(i => <DigestSkeleton key={i} />)}
-        </div>
-      </div>
-    );
-  }
+  const hour = new Date().getHours();
+  const salutation = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  if (error || !digest) {
-    return (
-      <div className="lg:pl-60 flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
-        <p className="text-sm text-muted-foreground">Failed to generate digest.</p>
-        <button
-          onClick={() => load(true)}
-          className="text-sm underline underline-offset-2 text-foreground/60 hover:text-foreground transition-colors"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
-
-  if (digest.sections.length === 0) {
-    return (
-      <div className="lg:pl-60 flex flex-col items-center justify-center min-h-[60vh] gap-4 px-4 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-          </svg>
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-semibold">No stories yet</p>
-          <p className="text-sm text-muted-foreground max-w-xs">No articles found for your preferred sectors in the last 48 hours.</p>
-        </div>
-        <Link href="/preferences" className="text-sm underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors">
-          Broaden your preferences →
-        </Link>
-      </div>
-    );
-  }
+  const totalStories = digest?.sections.reduce((n, s) => n + s.articles.length, 0) ?? 0;
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
 
   return (
-    <div className="lg:pl-60 pb-24 lg:pb-0">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/70 px-6 py-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Daily Digest</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {digest.cached ? `Updated ${timeAgo(digest.generated_at)}` : 'Just generated'}
-              {' · '}{digest.sections.length} sector{digest.sections.length !== 1 ? 's' : ''}
-            </p>
+    <PageShell
+      title="The Brief"
+      eyebrow={today}
+      hideTicker
+      width="narrow"
+      actions={
+        digest ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 eyebrow flex items-center gap-1.5 no-print"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              Print
+            </button>
+            <button
+              onClick={() => load(true)}
+              disabled={refreshing}
+              className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 eyebrow flex items-center gap-1.5 disabled:opacity-50 no-print"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+              {refreshing ? 'Refreshing' : 'Refresh'}
+            </button>
           </div>
-          <button
-            onClick={() => load(true)}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 px-3 py-1.5 rounded-lg hover:bg-muted"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-            {refreshing ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
-      </header>
+        ) : null
+      }
+      subtitle={
+        digest
+          ? `${digest.cached ? `Refreshed ${shortRelativeTime(digest.generated_at)} ago` : 'Fresh from the press'}  ·  ${digest.sections.length} section${digest.sections.length === 1 ? '' : 's'}  ·  ${totalStories} stories`
+          : undefined
+      }
+    >
+      <div className="brief-print">
+        {loading ? (
+          <>
+            {[1, 2, 3].map(i => <BriefSkeleton key={i} />)}
+          </>
+        ) : error || !digest ? (
+          <div className="py-20 text-center space-y-3 border-y border-border">
+            <p className="display-serif text-2xl">The wire went quiet.</p>
+            <p className="text-sm text-muted-foreground">We couldn&rsquo;t generate your brief this time.</p>
+            <button
+              onClick={() => load(true)}
+              className="text-sm text-muted-foreground hover:text-foreground link-underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : digest.sections.length === 0 ? (
+          <div className="py-20 text-center space-y-4 border-y border-border">
+            <p className="display-serif text-2xl">Nothing in your sectors yet.</p>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              No articles found for your preferred sectors in the last 48 hours.
+            </p>
+            <Link
+              href="/preferences"
+              className="inline-block text-sm text-muted-foreground hover:text-foreground link-underline"
+            >
+              Broaden your preferences →
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Editor's note */}
+            <div className="pb-6 animate-fade-up">
+              <p className="display-serif italic text-xl sm:text-2xl text-foreground/85 leading-[1.35] text-balance max-w-2xl">
+                {salutation}{greetingName ? `, ${greetingName}` : ''}.  Here&rsquo;s what moved in energy over the past 48 hours — across {digest.sections.length} sector{digest.sections.length === 1 ? '' : 's'} you follow.
+              </p>
+            </div>
 
-      {/* Sections */}
-      <div className="px-6 py-6 max-w-2xl mx-auto space-y-4">
-        {digest.sections.map((section) => (
-          <SectionCard key={section.sector} section={section} />
-        ))}
+            {/* Table of contents */}
+            <nav className="flex flex-wrap gap-x-4 gap-y-2 pb-6 border-t border-border pt-4 no-print">
+              {digest.sections.map((s) => (
+                <a
+                  key={s.sector}
+                  href={`#section-${s.sector}`}
+                  className="flex items-center gap-1.5 eyebrow text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <SectorDot sector={s.sector} />
+                  {s.label}
+                </a>
+              ))}
+            </nav>
+
+            {/* Sections */}
+            <div>
+              {digest.sections.map((section, i) => (
+                <div id={`section-${section.sector}`} key={section.sector}>
+                  <BriefSection section={section} index={i} />
+                </div>
+              ))}
+            </div>
+
+            {/* Sign-off */}
+            <div className="py-10 border-t border-border text-center">
+              <p className="eyebrow text-muted-foreground">— End of brief —</p>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </PageShell>
   );
 }
