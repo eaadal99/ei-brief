@@ -46,6 +46,7 @@ export default function MyFeedPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingFeedback, setPendingFeedback] = useState<Record<string, 'relevant' | 'not_relevant'>>({});
+  const [notedIds, setNotedIds] = useState<Record<string, 'relevant' | 'not_relevant'>>({});
   const [cursor, setCursor] = useState(0);
   const { setArticles: setCtxArticles } = useArticlesContext();
   const headingRef = useRef<HTMLDivElement>(null);
@@ -68,6 +69,8 @@ export default function MyFeedPage() {
   }, [loadFeed]);
 
   async function handleFeedback(articleId: string, feedback: 'relevant' | 'not_relevant') {
+    // Show "Noted/Skipped" overlay immediately
+    setNotedIds(prev => ({ ...prev, [articleId]: feedback }));
     setPendingFeedback(prev => ({ ...prev, [articleId]: feedback }));
     setTimeout(async () => {
       const excludedIds = articles.map((a) => a.id);
@@ -79,6 +82,11 @@ export default function MyFeedPage() {
         return updated;
       });
       setPendingFeedback(prev => {
+        const next = { ...prev };
+        delete next[articleId];
+        return next;
+      });
+      setNotedIds(prev => {
         const next = { ...prev };
         delete next[articleId];
         return next;
@@ -171,6 +179,7 @@ export default function MyFeedPage() {
               article={lead}
               onFeedback={handleFeedback}
               onSave={handleSave}
+              notedState={notedIds[lead.id]}
             />
           )}
 
@@ -185,6 +194,7 @@ export default function MyFeedPage() {
                       onFeedback={handleFeedback}
                       onSave={handleSave}
                       feedbackState={pendingFeedback[a.id]}
+                      notedState={notedIds[a.id]}
                       index={i}
                     />
                   </div>
@@ -204,7 +214,9 @@ export default function MyFeedPage() {
                       article={a}
                       variant="compact"
                       onSave={handleSave}
-                      showFeedback={false}
+                      onFeedback={handleFeedback}
+                      feedbackState={pendingFeedback[a.id]}
+                      notedState={notedIds[a.id]}
                       index={i}
                     />
                   ))}
