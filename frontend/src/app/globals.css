@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Prevent stray wide elements from forcing the viewport to scroll horizontally on mobile */
+html, body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 @custom-variant paper (&:is(.paper *));
 
 @theme inline {
