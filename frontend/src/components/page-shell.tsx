@@ -53,10 +53,10 @@ export default function PageShell({
   }
 
   return (
-    <div className="flex min-h-screen bg-background w-full max-w-full overflow-x-hidden">
+    <div className="flex min-h-screen bg-background w-full">
       <AppSidebar />
 
-      <main className="flex-1 min-w-0 w-full lg:pl-16 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden">
+      <main className="flex-1 min-w-0 w-full lg:pl-16 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-0">
         {/* Header */}
         <header className="sticky top-0 z-20 bg-background no-print">
           <div className={`px-4 sm:px-6 py-4 sm:py-6 mx-auto ${widthClass[width]}`}>

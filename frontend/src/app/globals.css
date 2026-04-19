@@ -271,20 +271,3 @@
   }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   MOBILE OVERFLOW GUARD — placed at end so it wins against Tailwind preflight.
-   Any element wider than the viewport (e.g. horizontal rails, grids, long
-   unbroken strings) is visually clipped rather than forcing iOS Safari into
-   its shrink-to-fit mode (which renders the whole page zoomed out).
-   ──────────────────────────────────────────────────────────────────────── */
-html,
-body {
-  overflow-x: hidden !important;
-  max-width: 100vw;
-}
-
-/* Ensure the root flex container and its children can't exceed the viewport,
-   even when a flex child has naturally wide content. */
-body > * {
-  max-width: 100vw;
-}

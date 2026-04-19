@@ -17,7 +17,7 @@ export function HeroCard({ article, onSave, onFeedback, notedState }: HeroCardPr
   const time = shortRelativeTime(article.published_at);
 
   return (
-    <article className="group relative flex flex-col gap-5 py-10 animate-fade-up">
+    <article className="group relative flex flex-col gap-4 sm:gap-5 py-6 sm:py-10 animate-fade-up">
       {notedState && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 pointer-events-none z-10">
           <span className="eyebrow text-xs text-foreground">
@@ -25,14 +25,14 @@ export function HeroCard({ article, onSave, onFeedback, notedState }: HeroCardPr
           </span>
         </div>
       )}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 eyebrow text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 eyebrow text-muted-foreground min-w-0">
           <SectorDot sector={article.sector} />
-          <span className="text-foreground/70">{sector?.label ?? 'Lead'}</span>
+          <span className="text-foreground/70 truncate">{sector?.label ?? 'Lead'}</span>
           <span className="opacity-40">·</span>
-          <span>Lead story</span>
+          <span>Lead</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
           {time && <span>{time}</span>}
           <span>{readingTime(article.headline, article.summary)}</span>
         </div>
@@ -56,20 +56,20 @@ export function HeroCard({ article, onSave, onFeedback, notedState }: HeroCardPr
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-3 pt-2 flex-wrap">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
           {article.source_name && (
-            <span className="font-medium text-foreground/70">{article.source_name}</span>
+            <span className="font-medium text-foreground/70 truncate">{article.source_name}</span>
           )}
           {article.geography && (
             <>
               <span className="opacity-40">·</span>
-              <span className="eyebrow text-muted-foreground">{article.geography}</span>
+              <span className="eyebrow text-muted-foreground truncate">{article.geography}</span>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {onFeedback && (
             <>
               <button
