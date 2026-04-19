@@ -40,12 +40,12 @@ export function HeroCard({ article, onSave, onFeedback, notedState }: HeroCardPr
 
       {article.url ? (
         <a href={article.url} target="_blank" rel="noopener noreferrer" className="block">
-          <h2 className="display-serif text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.05] text-foreground group-hover:text-foreground/85 transition-colors">
+          <h2 className="display-serif text-[1.75rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.1] break-words text-foreground group-hover:text-foreground/85 transition-colors">
             {article.headline}
           </h2>
         </a>
       ) : (
-        <h2 className="display-serif text-[2rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.05] text-foreground">
+        <h2 className="display-serif text-[1.75rem] sm:text-[2.75rem] lg:text-[3.5rem] font-semibold leading-[1.1] break-words text-foreground">
           {article.headline}
         </h2>
       )}

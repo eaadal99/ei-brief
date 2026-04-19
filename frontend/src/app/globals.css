@@ -2,12 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Prevent stray wide elements from forcing the viewport to scroll horizontally on mobile */
-html, body {
-  overflow-x: clip;
-  max-width: 100%;
-}
-
 @custom-variant paper (&:is(.paper *));
 
 @theme inline {
@@ -275,4 +269,22 @@ html, body {
     margin: 0 auto;
     padding: 24px;
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   MOBILE OVERFLOW GUARD — placed at end so it wins against Tailwind preflight.
+   Any element wider than the viewport (e.g. horizontal rails, grids, long
+   unbroken strings) is visually clipped rather than forcing iOS Safari into
+   its shrink-to-fit mode (which renders the whole page zoomed out).
+   ──────────────────────────────────────────────────────────────────────── */
+html,
+body {
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+/* Ensure the root flex container and its children can't exceed the viewport,
+   even when a flex child has naturally wide content. */
+body > * {
+  max-width: 100vw;
 }
