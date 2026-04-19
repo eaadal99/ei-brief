@@ -37,7 +37,7 @@ export function ArticleCard({
   if (variant === 'compact') {
     return (
       <article
-        className="group relative snap-start shrink-0 w-[320px] flex flex-col gap-3 py-4 px-4 bg-card/60 rounded-lg hover:bg-card hover:-translate-y-0.5 transition-all duration-200 animate-fade-up"
+        className="group relative snap-start shrink-0 w-[82vw] sm:w-[320px] max-w-[320px] flex flex-col gap-3 py-4 px-4 bg-card/60 rounded-lg hover:bg-card hover:-translate-y-0.5 transition-all duration-200 animate-fade-up"
         style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
       >
         {/* Noted/Skipped flash overlay */}
