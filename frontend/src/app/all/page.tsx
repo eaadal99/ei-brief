@@ -102,7 +102,7 @@ function AllNewsInner() {
             <input
               id="all-search-input"
               type="text"
-              placeholder="Search headlines and summaries…   (press /)"
+              placeholder="Search headlines and summaries…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full h-10 pl-9 pr-24 bg-card border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground/70 outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"

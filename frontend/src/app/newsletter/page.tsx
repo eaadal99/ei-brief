@@ -135,7 +135,7 @@ function GenerateTab() {
             <iframe
               srcDoc={preview}
               title="Newsletter preview"
-              className="w-full min-h-[600px] border-0 rounded-lg"
+              className="w-full min-h-[400px] sm:min-h-[600px] border-0 rounded-lg"
               sandbox="allow-same-origin"
             />
           </CardContent>
@@ -342,7 +342,7 @@ function ArchiveTab() {
             <iframe
               srcDoc={viewing.html}
               title="Newsletter"
-              className="w-full min-h-[600px] border-0 rounded-lg"
+              className="w-full min-h-[400px] sm:min-h-[600px] border-0 rounded-lg"
               sandbox="allow-same-origin"
             />
           </CardContent>

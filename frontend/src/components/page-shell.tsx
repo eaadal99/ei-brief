@@ -14,8 +14,6 @@ interface PageShellProps {
   subtitle?: string;
   /** Optional element rendered to the right of the title (e.g. action buttons) */
   actions?: React.ReactNode;
-  /** @deprecated ticker removed */
-  hideTicker?: boolean;
   /** Max-width of the content container; default 'content' (1100px). 'narrow' = 780px, 'wide' = full */
   width?: 'narrow' | 'content' | 'wide';
 }
@@ -58,16 +56,16 @@ export default function PageShell({
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
 
-      <main className="flex-1 lg:pl-16 pb-24 lg:pb-0">
+      <main className="flex-1 lg:pl-16 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-0">
         {/* Header */}
         <header className="sticky top-0 z-20 bg-background no-print">
-          <div className={`px-6 py-6 mx-auto ${widthClass[width]}`}>
-            <div className="flex items-end justify-between gap-3">
-              <div>
+          <div className={`px-4 sm:px-6 py-4 sm:py-6 mx-auto ${widthClass[width]}`}>
+            <div className="flex items-end justify-between gap-3 flex-wrap sm:flex-nowrap">
+              <div className="min-w-0">
                 {eyebrow && (
                   <p className="eyebrow text-muted-foreground mb-2">{eyebrow}</p>
                 )}
-                <h1 className="display-serif text-[28px] sm:text-[34px] font-semibold leading-none text-foreground">
+                <h1 className="display-serif text-[22px] sm:text-[28px] md:text-[34px] font-semibold leading-tight text-foreground">
                   {title}
                 </h1>
                 {subtitle && (
@@ -79,7 +77,7 @@ export default function PageShell({
           </div>
         </header>
 
-        <div className={`px-6 py-8 mx-auto ${widthClass[width]}`}>
+        <div className={`px-4 sm:px-6 py-6 sm:py-8 mx-auto ${widthClass[width]}`}>
           {children}
         </div>
       </main>

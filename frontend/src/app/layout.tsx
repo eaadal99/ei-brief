@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Fraunces } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
@@ -24,6 +24,13 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "E&I Brief — Energy Intelligence",
   description: "A terminal for energy markets. Personalised, fast, serious.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
