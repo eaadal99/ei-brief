@@ -303,7 +303,7 @@ export default function PreferencesPage() {
             How closely articles must match your preferences.
           </p>
           <Select value={matchStrictness} onValueChange={(v: string | null) => v && setMatchStrictness(v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[220px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
