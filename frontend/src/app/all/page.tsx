@@ -91,7 +91,7 @@ function AllNewsInner() {
       subtitle="Every article we ingest — searchable, filterable, dense."
       width="wide"
     >
-      <div className="max-w-[1100px] mx-auto">
+      <div className="max-w-[1100px] mx-auto w-full">
         {/* Search + filter toolbar */}
         <div className="sticky top-[calc(env(safe-area-inset-top)+88px)] z-10 -mt-4 pt-4 pb-4 bg-background">
           <form onSubmit={handleSearch} className="relative mb-3">

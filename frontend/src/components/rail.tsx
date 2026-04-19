@@ -72,7 +72,7 @@ export function Rail({ sectorKey, children, count }: RailProps) {
       {/* Scroll container */}
       <div
         ref={ref}
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2 -mx-4 sm:-mx-6 px-4 sm:px-6"
+        className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2 sm:-mx-6 sm:px-6"
       >
         {children}
       </div>
